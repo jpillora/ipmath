@@ -40,23 +40,29 @@ func PrevIP(ip net.IP) net.IP {
 
 //IsNetworkAddress returns whether the given IPv4 address
 //is the network address of the given IPv4 subnet
-func IsNetworkAddress(ip net.IP, ipnet *net.IPNet) bool {
+func IsNetworkAddress(ip net.IP, network *net.IPNet) bool {
 	curr := binary.BigEndian.Uint32([]byte(ip))
-	mask := binary.BigEndian.Uint32([]byte(ipnet.Mask))
+	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	if mask == math.MaxUint32 {
+		return false
+	}
 	return (^mask & curr) == uint32(0)
 }
 
 //IsBroadcastAddress returns whether the given IPv4 address
 //is the broadcast address of the given IPv4 subnet
-func IsBroadcastAddress(ip net.IP, ipnet *net.IPNet) bool {
+func IsBroadcastAddress(ip net.IP, network *net.IPNet) bool {
 	curr := binary.BigEndian.Uint32([]byte(ip))
-	mask := binary.BigEndian.Uint32([]byte(ipnet.Mask))
+	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	if mask == math.MaxUint32 {
+		return false
+	}
 	return (mask | curr) == math.MaxUint32
 }
 
 //NetworkSize returns the number of addresses in a subnet
-func NetworkSize(ipnet *net.IPNet) uint32 {
-	mask := binary.BigEndian.Uint32([]byte(ipnet.Mask))
+func NetworkSize(network *net.IPNet) uint32 {
+	mask := binary.BigEndian.Uint32([]byte(network.Mask))
 	return ^mask
 }
 
