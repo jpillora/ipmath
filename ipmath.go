@@ -7,24 +7,33 @@ import (
 	"net"
 )
 
+//ToUInt32 converts an IPv4 address into
+//a uint32
+func ToUInt32(ip net.IP) uint32 {
+	buff := make([]byte, 4)
+	copy(buff, []byte(ip))
+	return binary.BigEndian.Uint32(buff)
+}
+
+//FromUInt32 converts a uint32 into
+//an IPv4 address
+func FromUInt32(u uint32) net.IP {
+	buff := make([]byte, 4)
+	binary.BigEndian.PutUint32(buff, u)
+	return net.IP(buff)
+}
+
 //DeltaIP returns the IPv4 delta-many places away
 func DeltaIP(ip net.IP, delta int) net.IP {
 	if delta == 0 {
 		return ip
 	}
-	buff := make([]byte, 4)
-	copy(buff, []byte(ip))
-	i := binary.BigEndian.Uint32(buff)
-	if delta < 0 {
-		i -= uint32(delta * -1)
-	} else if delta > 0 {
-		i += uint32(delta)
+	i := int64(ToUInt32(ip))
+	i += int64(delta)
+	if i > math.MaxUint32 {
+		i = math.MaxUint32
 	}
-	if i == math.MaxUint32 {
-		return ip //cant increment past broadcast
-	}
-	binary.BigEndian.PutUint32(buff, i)
-	return net.IP(buff)
+	return FromUInt32(uint32(i))
 
 }
 
