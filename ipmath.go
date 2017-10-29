@@ -14,7 +14,7 @@ func DeltaIP(ip net.IP, delta int) net.IP {
 	}
 	buff := make([]byte, 4)
 	copy(buff, []byte(ip))
-	i := binary.BigEndian.Uint32(buff)
+	i := ipU32(ip)
 	if delta < 0 {
 		i -= uint32(delta * -1)
 	} else if delta > 0 {
@@ -25,7 +25,6 @@ func DeltaIP(ip net.IP, delta int) net.IP {
 	}
 	binary.BigEndian.PutUint32(buff, i)
 	return net.IP(buff)
-
 }
 
 //NextIP returns the next IPv4 in sequence
@@ -41,10 +40,10 @@ func PrevIP(ip net.IP) net.IP {
 //IsNetworkAddress returns whether the given IPv4 address
 //is the network address of the given IPv4 subnet
 func IsNetworkAddress(ip net.IP, network *net.IPNet) bool {
-	curr := binary.BigEndian.Uint32([]byte(ip))
-	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	curr := ipU32(ip)
+	mask := maskU32(network.Mask)
 	if mask == math.MaxUint32 {
-		return false
+		return false // note: /32 have no network address
 	}
 	return (^mask & curr) == uint32(0)
 }
@@ -52,17 +51,17 @@ func IsNetworkAddress(ip net.IP, network *net.IPNet) bool {
 //IsBroadcastAddress returns whether the given IPv4 address
 //is the broadcast address of the given IPv4 subnet
 func IsBroadcastAddress(ip net.IP, network *net.IPNet) bool {
-	curr := binary.BigEndian.Uint32([]byte(ip))
-	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	curr := ipU32(ip)
+	mask := maskU32(network.Mask)
 	if mask == math.MaxUint32 {
-		return false
+		return false // note: /32 have no broadcast address
 	}
 	return (mask | curr) == math.MaxUint32
 }
 
 //NetworkSize returns the number of addresses in a subnet
 func NetworkSize(network *net.IPNet) uint32 {
-	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	mask := maskU32(network.Mask)
 	return ^mask
 }
 
@@ -73,4 +72,12 @@ func Hash(ip net.IP) []byte {
 	h.Write(input)
 	output := h.Sum(nil)
 	return output
+}
+
+func ipU32(ip net.IP) uint32 {
+	return binary.BigEndian.Uint32([]byte(ip.To4()))
+}
+
+func maskU32(m net.IPMask) uint32 {
+	return binary.BigEndian.Uint32([]byte(m))
 }
