@@ -10,9 +10,7 @@ import (
 //ToUInt32 converts an IPv4 address into
 //a uint32
 func ToUInt32(ip net.IP) uint32 {
-	buff := make([]byte, 4)
-	copy(buff, []byte(ip))
-	return binary.BigEndian.Uint32(buff)
+	return binary.BigEndian.Uint32([]byte(ip.To4()))
 }
 
 //FromUInt32 converts a uint32 into
@@ -23,18 +21,25 @@ func FromUInt32(u uint32) net.IP {
 	return net.IP(buff)
 }
 
+func maskU32(m net.IPMask) uint32 {
+	return binary.BigEndian.Uint32([]byte(m))
+}
+
 //DeltaIP returns the IPv4 delta-many places away
 func DeltaIP(ip net.IP, delta int) net.IP {
 	if delta == 0 {
 		return ip
 	}
-	i := int64(ToUInt32(ip))
-	i += int64(delta)
-	if i > math.MaxUint32 {
-		i = math.MaxUint32
+	i := ToUInt32(ip)
+	if delta < 0 {
+		i -= uint32(delta * -1)
+	} else if delta > 0 {
+		i += uint32(delta)
 	}
-	return FromUInt32(uint32(i))
-
+	if i == math.MaxUint32 {
+		return ip //cant increment past broadcast
+	}
+	return FromUInt32(i)
 }
 
 //NextIP returns the next IPv4 in sequence
@@ -50,10 +55,10 @@ func PrevIP(ip net.IP) net.IP {
 //IsNetworkAddress returns whether the given IPv4 address
 //is the network address of the given IPv4 subnet
 func IsNetworkAddress(ip net.IP, network *net.IPNet) bool {
-	curr := binary.BigEndian.Uint32([]byte(ip))
-	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	curr := ToUInt32(ip)
+	mask := maskU32(network.Mask)
 	if mask == math.MaxUint32 {
-		return false
+		return false // note: /32 have no network address
 	}
 	return (^mask & curr) == uint32(0)
 }
@@ -61,17 +66,17 @@ func IsNetworkAddress(ip net.IP, network *net.IPNet) bool {
 //IsBroadcastAddress returns whether the given IPv4 address
 //is the broadcast address of the given IPv4 subnet
 func IsBroadcastAddress(ip net.IP, network *net.IPNet) bool {
-	curr := binary.BigEndian.Uint32([]byte(ip))
-	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	curr := ToUInt32(ip)
+	mask := maskU32(network.Mask)
 	if mask == math.MaxUint32 {
-		return false
+		return false // note: /32 have no broadcast address
 	}
 	return (mask | curr) == math.MaxUint32
 }
 
 //NetworkSize returns the number of addresses in a subnet
 func NetworkSize(network *net.IPNet) uint32 {
-	mask := binary.BigEndian.Uint32([]byte(network.Mask))
+	mask := maskU32(network.Mask)
 	return ^mask
 }
 
