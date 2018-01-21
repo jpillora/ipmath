@@ -49,7 +49,7 @@ func NextIP(ip net.IP) net.IP {
 
 //PrevIP returns the previous IPv4 in sequence
 func PrevIP(ip net.IP) net.IP {
-	return DeltaIP(ip, 1)
+	return DeltaIP(ip, -1)
 }
 
 //IsNetworkAddress returns whether the given IPv4 address
